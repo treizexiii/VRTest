@@ -21,7 +21,13 @@ public class TodoGrain : Grain, ITodoGrain
     
     public async Task SetAsync(TodoItem item)
     {
-        _state.State.Item = item;
+        _state.State.Item ??= new List<TodoItem>();
+        if (_state.State.Item.Any(x => x.Key == item.Key))
+        {
+            var removedItem = _state.State.Item.First(x => x.Key == item.Key);
+            _state.State.Item.Remove(removedItem);
+        }
+        _state.State.Item.Add(item);
         await _state.WriteStateAsync();
 
         _logger.LogInformation(
@@ -29,11 +35,18 @@ public class TodoGrain : Grain, ITodoGrain
             GrainType, GrainKey, item);
     }
 
-    public Task<TodoItem?> GetAsync()
+    public Task<TodoItem?> GetAsync(Guid key)
+    {
+        var list = _state.State.Item;
+        var item = list?.FirstOrDefault(x => x.Key == key);
+        return Task.FromResult(item);
+    }
+
+    public Task<List<TodoItem>?> GetAllAsync()
     {
         return Task.FromResult(_state.State.Item);
     }
-    
+
     [GenerateSerializer]
     public class State
     {
