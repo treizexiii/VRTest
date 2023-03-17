@@ -1,4 +1,5 @@
 ﻿using GameServicesAPI.Dto;
+using GameServicesAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Grains;
 using Shared.Models;
@@ -12,10 +13,13 @@ public class TodoController : Controller
     private readonly ILogger<TodoController> _logger;
     private readonly IClusterClient _client;
 
-    public TodoController(ILogger<TodoController> logger, IClusterClient client)
+    private readonly IAlertService _alertService;
+
+    public TodoController(ILogger<TodoController> logger, IClusterClient client, IAlertService alertService)
     {
         _logger = logger;
         _client = client;
+        _alertService = alertService;
     }
 
     [HttpGet]
@@ -23,6 +27,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".GetAll");
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
             return Ok(todo);
         }
@@ -38,6 +43,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Get");
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
             if (todo == null)
             {
@@ -58,6 +64,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Create");
             var item = new TodoItem(
                 Guid.NewGuid(),
                 itemDto.Title,
@@ -83,6 +90,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Update");
             var item = new TodoItem(
                 key,
                 itemDto.Title,
@@ -108,6 +116,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Remove");
             _logger.LogInformation("Removing todo item {@Guid}", guid);
             var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).RemoveAsync(guid);
 
@@ -125,6 +134,7 @@ public class TodoController : Controller
     {
         try
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Clear");
             _logger.LogInformation("Clear all todo item");
             var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).ClearAsync();
 

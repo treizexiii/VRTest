@@ -1,6 +1,10 @@
+using GameServicesAPI.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseOrleansClient(builder => { builder.UseLocalhostClustering(); });
+
+builder.Services.AddScoped<IAlertService, AlertService>();
 
 builder.Services.AddRouting(options =>
 {
