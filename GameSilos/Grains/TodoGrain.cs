@@ -37,6 +37,6 @@ public class TodoGrain : Grain, ITodoGrain
     [GenerateSerializer]
     public class State
     {
-        [Id(0)] public TodoItem? Item { get; set; }
+        [Id(0)] public List<TodoItem>? Item { get; set; }
     }
 }
