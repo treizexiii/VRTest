@@ -5,25 +5,26 @@ using Shared.Models;
 
 namespace GameServicesAPI.Controllers;
 
+
 [ApiController]
-[Route("[controller]")]
-public class TodoController : Controller
+[Route("{ownerGuid:guid}/[controller]")]
+public class TodoWithOwnerController : Controller
 {
-    private readonly ILogger<TodoController> _logger;
+    private readonly ILogger<TodoWithOwnerController> _logger;
     private readonly IClusterClient _client;
 
-    public TodoController(ILogger<TodoController> logger, IClusterClient client)
+    public TodoWithOwnerController(ILogger<TodoWithOwnerController> logger, IClusterClient client)
     {
         _logger = logger;
         _client = client;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(Guid ownerGuid)
     {
         try
         {
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
+            var todo = await _client.GetGrain<ITodoGrain>(ownerGuid).GetAllAsync();
             return Ok(todo);
         }
         catch (Exception e)
@@ -34,11 +35,11 @@ public class TodoController : Controller
     }
 
     [HttpGet("{key:guid}")]
-    public async Task<IActionResult> Get(Guid key)
+    public async Task<IActionResult> Get(Guid ownerGuid, Guid key)
     {
         try
         {
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
+            var todo = await _client.GetGrain<ITodoGrain>(ownerGuid).GetAsync(key);
             if (todo == null)
             {
                 return NotFound();
@@ -54,7 +55,7 @@ public class TodoController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(TodoItemDto itemDto)
+    public async Task<IActionResult> Create(Guid ownerGuid, TodoItemDto itemDto)
     {
         try
         {
@@ -65,9 +66,9 @@ public class TodoController : Controller
                 itemDto.OwnerKey,
                 DateTime.UtcNow);
             _logger.LogInformation("Adding {@Item}", item);
-            await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
+            await _client.GetGrain<ITodoGrain>(ownerGuid).SetAsync(item);
 
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
+            var todo = await _client.GetGrain<ITodoGrain>(ownerGuid).GetAllAsync();
 
             return Ok(todo);
         }
@@ -79,7 +80,7 @@ public class TodoController : Controller
     }
 
     [HttpPut("{key:guid}")]
-    public async Task<IActionResult> Update(Guid key, TodoItemDto itemDto)
+    public async Task<IActionResult> Update(Guid ownerGuid, Guid key, TodoItemDto itemDto)
     {
         try
         {
@@ -90,9 +91,9 @@ public class TodoController : Controller
                 itemDto.OwnerKey,
                 DateTime.UtcNow);
             _logger.LogInformation("Updating {@Item}", item);
-            await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
+            await _client.GetGrain<ITodoGrain>(ownerGuid).SetAsync(item);
 
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
+            var todo = await _client.GetGrain<ITodoGrain>(ownerGuid).GetAsync(key);
 
             return Ok(todo);
         }
@@ -104,12 +105,12 @@ public class TodoController : Controller
     }
 
     [HttpDelete("{key:guid}")]
-    public async Task<IActionResult> Remove(Guid guid)
+    public async Task<IActionResult> Remove(Guid ownerGuid, Guid guid)
     {
         try
         {
             _logger.LogInformation("Removing todo item {@Guid}", guid);
-            var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).RemoveAsync(guid);
+            var list = await _client.GetGrain<ITodoGrain>(ownerGuid).RemoveAsync(guid);
 
             return Ok(list);
         }
@@ -121,12 +122,12 @@ public class TodoController : Controller
     }
 
     [HttpDelete()]
-    public async Task<IActionResult> Clear()
+    public async Task<IActionResult> Clear(Guid ownerGuid)
     {
         try
         {
             _logger.LogInformation("Clear all todo item");
-            var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).ClearAsync();
+            var list = await _client.GetGrain<ITodoGrain>(ownerGuid).ClearAsync();
 
             return Ok(list);
         }

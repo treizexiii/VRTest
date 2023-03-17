@@ -42,9 +42,26 @@ public class TodoGrain : Grain, ITodoGrain
         return Task.FromResult(item);
     }
 
-    public Task<List<TodoItem>?> GetAllAsync()
+    public Task<IEnumerable<TodoItem>?> GetAllAsync()
     {
-        return Task.FromResult(_state.State.Item);
+        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
+    }
+
+    public Task<IEnumerable<TodoItem>> RemoveAsync(Guid key)
+    {
+        _state.State.Item ??= new List<TodoItem>();
+        if (_state.State.Item.Any(x => x.Key == key))
+        {
+            var removedItem = _state.State.Item.First(x => x.Key == key);
+            _state.State.Item.Remove(removedItem);
+        }
+        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
+    }
+
+    public Task<IEnumerable<TodoItem>> ClearAsync()
+    {
+        _state.State.Item = new List<TodoItem>();
+        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
     }
 
     [GenerateSerializer]
