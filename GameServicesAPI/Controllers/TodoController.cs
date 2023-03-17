@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using GameServicesAPI.Dto;
+using Microsoft.AspNetCore.Mvc;
 using Shared.Grains;
 using Shared.Models;
 
@@ -16,13 +17,52 @@ public class TodoController : Controller
         _logger = logger;
         _client = client;
     }
-    
-    [HttpPost("create")]
-    public async Task<IActionResult> Create(TodoItem item)
+
+    [HttpGet("{key:guid}")]
+    public async Task<IActionResult> Get(Guid key)
     {
-        _logger.LogInformation("Adding {@item}.", item);
+        var todo = await _client.GetGrain<ITodoGrain>(key).GetAsync();
+        return Ok(todo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync();
+        return Ok(todo);
+    }
+    
+    [HttpPost]
+    public async Task<IActionResult> Create(TodoItemDto itemDto)
+    {
+        var item = new TodoItem(
+            Guid.NewGuid(),
+            itemDto.Title,
+            itemDto.IsDone,
+            itemDto.OwnerKey,
+            DateTime.UtcNow);
+        _logger.LogInformation("Adding {@Item}", item);
+        await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
+
+        var todo = await _client.GetGrain<ITodoGrain>(item.Key).GetAsync();
+
+        return Ok(todo);
+    }
+
+    [HttpPut("{key:guid}")]
+    public async Task<IActionResult> Update(Guid key, TodoItemDto itemDto)
+    {
+        var item = new TodoItem(
+            key,
+            itemDto.Title,
+            itemDto.IsDone,
+            itemDto.OwnerKey,
+            DateTime.UtcNow);
+        _logger.LogInformation("Updating {@Item}", item);
         await _client.GetGrain<ITodoGrain>(item.Key).SetAsync(item);
 
-        return Ok();
+        var todo = await _client.GetGrain<ITodoGrain>(item.Key).GetAsync();
+
+        return Ok(todo);
     }
 }
