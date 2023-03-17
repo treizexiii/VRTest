@@ -10,8 +10,8 @@ public class AlertService : IAlertService
         _httpClient.BaseAddress = new Uri("https://alertapi.treize.cloud/");
     }
 
-    public Task SendAlertAsync(string method)
+    public Task SendAlertAsync(string method, Exception e)
     {
-        return _httpClient.PostAsync("alert/" + method, null);
+        return _httpClient.PostAsync("alert/" + method, new StringContent(e.StackTrace??""));
     }
 }

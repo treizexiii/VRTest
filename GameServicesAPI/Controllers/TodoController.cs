@@ -27,12 +27,12 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".GetAll");
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
             return Ok(todo);
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".GetAll", e);
             _logger.LogError(e, "Error getting todo items");
             return BadRequest("Error getting todo items");
         }
@@ -43,17 +43,16 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".Get");
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
             if (todo == null)
             {
                 return NotFound();
             }
-
             return Ok(todo);
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Get", e);
             _logger.LogError(e, "Error getting todo item");
             return BadRequest("Error getting todo item");
         }
@@ -64,7 +63,6 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".Create");
             var item = new TodoItem(
                 Guid.NewGuid(),
                 itemDto.Title,
@@ -75,11 +73,11 @@ public class TodoController : Controller
             await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
 
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
-
             return Ok(todo);
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Create", e);
             _logger.LogError(e, "Error creating todo item");
             return BadRequest("Error creating todo item");
         }
@@ -90,7 +88,6 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".Update");
             var item = new TodoItem(
                 key,
                 itemDto.Title,
@@ -101,11 +98,11 @@ public class TodoController : Controller
             await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
 
             var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
-
             return Ok(todo);
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Update", e);
             _logger.LogError(e, "Error updating todo item");
             return BadRequest("Error updating todo item");
         }
@@ -116,7 +113,6 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".Remove");
             _logger.LogInformation("Removing todo item {@Guid}", guid);
             var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).RemoveAsync(guid);
 
@@ -124,6 +120,7 @@ public class TodoController : Controller
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Remove", e);
             _logger.LogError(e, "Error removing todo item");
             return BadRequest("Error removing todo item");
         }
@@ -134,7 +131,6 @@ public class TodoController : Controller
     {
         try
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".Clear");
             _logger.LogInformation("Clear all todo item");
             var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).ClearAsync();
 
@@ -142,6 +138,7 @@ public class TodoController : Controller
         }
         catch (Exception e)
         {
+            await _alertService.SendAlertAsync(GetType().Name + ".Clear", e);
             _logger.LogError(e, "Error clearing todo item");
             return BadRequest("Error clearing todo item");
         }
