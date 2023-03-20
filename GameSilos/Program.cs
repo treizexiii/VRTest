@@ -2,15 +2,24 @@
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Orleans.Configuration;
 
 Console.WriteLine("Hello, Silo!");
 
 
 await Host.CreateDefaultBuilder()
-    .UseOrleans(builder =>
+    .UseOrleans(config =>
     {
-        builder.UseLocalhostClustering();
-        builder.AddMemoryGrainStorageAsDefault();
+        config.UseLocalhostClustering();
+        config.Configure<ClusterOptions>(options =>
+        {
+            options.ClusterId = "dev";
+            options.ServiceId = "GameSilos";
+        });
+        config.AddMemoryGrainStorageAsDefault();
     })
     .ConfigureLogging(builder => builder.AddConsole())
     .RunConsoleAsync();
+     
+     
+     //38334063

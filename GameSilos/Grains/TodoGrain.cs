@@ -12,61 +12,41 @@ public class TodoGrain : Grain, ITodoGrain
 
     private static string GrainType => nameof(TodoGrain);
     private Guid GrainKey => this.GetPrimaryKey();
-    
+
     public TodoGrain(ILogger<TodoGrain> logger, [PersistentState("State")] IPersistentState<State> state)
     {
         _logger = logger;
         _state = state;
     }
-    
+
     public async Task SetAsync(TodoItem item)
     {
-        _state.State.Item ??= new List<TodoItem>();
-        if (_state.State.Item.Any(x => x.Key == item.Key))
-        {
-            var removedItem = _state.State.Item.First(x => x.Key == item.Key);
-            _state.State.Item.Remove(removedItem);
-        }
-        _state.State.Item.Add(item);
+        _state.State.Item = item;
+        await GrainFactory.GetGrain<IOwnerGrain>(item.OwnerKey).AddTodoAsync(item);
         await _state.WriteStateAsync();
-
         _logger.LogInformation(
             "{@GrainType} {@GrainKey} now contains {@Todo}",
             GrainType, GrainKey, item);
     }
 
-    public Task<TodoItem?> GetAsync(Guid key)
+    public Task<TodoItem?> GetAsync()
     {
-        var list = _state.State.Item;
-        var item = list?.FirstOrDefault(x => x.Key == key);
+        var item = _state.State.Item;
+        _logger.LogInformation("GetAsync called on {@GrainType} {@GrainKey} and returned {@Todo}",
+            GrainType, GrainKey, item);
         return Task.FromResult(item);
     }
 
-    public Task<IEnumerable<TodoItem>?> GetAllAsync()
+    public async Task ClearAsync()
     {
-        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
-    }
-
-    public Task<IEnumerable<TodoItem>> RemoveAsync(Guid key)
-    {
-        _state.State.Item ??= new List<TodoItem>();
-        if (_state.State.Item.Any(x => x.Key == key))
-        {
-            var removedItem = _state.State.Item.First(x => x.Key == key);
-            _state.State.Item.Remove(removedItem);
-        }
-        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
-    }
-
-    public Task<IEnumerable<TodoItem>> ClearAsync()
-    {
-        _state.State.Item = new List<TodoItem>();
-        return Task.FromResult(_state.State.Item as IEnumerable<TodoItem>);
+        await _state.ClearStateAsync();
+        _logger.LogInformation("Cleared {@GrainType} {@GrainKey}", 
+            GrainType, GrainKey);
     }
 
     [GenerateSerializer]
     public class State
     {
-        [Id(0)] public List<TodoItem>? Item { get; set; }
+        [Id(0)] public TodoItem? Item { get; set; }
     }
 }

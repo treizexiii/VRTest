@@ -1,8 +1,17 @@
 using GameServicesAPI.Services;
+using Orleans.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseOrleansClient(builder => { builder.UseLocalhostClustering(); });
+builder.Host.UseOrleansClient(config =>
+{
+    config.UseLocalhostClustering();
+    config.Configure<ClusterOptions>(options =>
+    {
+        options.ClusterId = "dev";
+        options.ServiceId = "GameSilos";
+    });
+});
 
 builder.Services.AddScoped<IAlertService, AlertService>();
 

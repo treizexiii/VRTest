@@ -21,18 +21,18 @@ public class TodoController : Controller
         _client = client;
         _alertService = alertService;
     }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    
+    [HttpGet("all/{ownerKey:guid}")]
+    public async Task<IActionResult> GetAll(Guid ownerKey)
     {
         try
         {
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
-            return Ok(todo);
+            var todoList = await _client.GetGrain<IOwnerGrain>(ownerKey).GetTodosAsync();
+            return Ok(todoList);
         }
         catch (Exception e)
         {
-            await _alertService.SendAlertAsync(GetType().Name + ".GetAll", e);
+            await _alertService.SendAlertAsync(GetType().Name + ".Get", e);
             _logger.LogError(e, "Error getting todo items");
             return BadRequest("Error getting todo items");
         }
@@ -43,7 +43,7 @@ public class TodoController : Controller
     {
         try
         {
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
+            var todo = await _client.GetGrain<ITodoGrain>(key).GetAsync();
             if (todo == null)
             {
                 return NotFound();
@@ -70,9 +70,10 @@ public class TodoController : Controller
                 itemDto.OwnerKey,
                 DateTime.UtcNow);
             _logger.LogInformation("Adding {@Item}", item);
-            await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
+            await _client.GetGrain<ITodoGrain>(item.Key).SetAsync(item);
 
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAllAsync();
+            var todo = await _client.GetGrain<IOwnerGrain>(item.OwnerKey).GetTodosAsync();
+            
             return Ok(todo);
         }
         catch (Exception e)
@@ -95,9 +96,9 @@ public class TodoController : Controller
                 itemDto.OwnerKey,
                 DateTime.UtcNow);
             _logger.LogInformation("Updating {@Item}", item);
-            await _client.GetGrain<ITodoGrain>(Guid.Empty).SetAsync(item);
+            await _client.GetGrain<ITodoGrain>(item.Key).SetAsync(item);
 
-            var todo = await _client.GetGrain<ITodoGrain>(Guid.Empty).GetAsync(key);
+            var todo = await _client.GetGrain<ITodoGrain>(item.Key).GetAsync();
             return Ok(todo);
         }
         catch (Exception e)
@@ -107,34 +108,42 @@ public class TodoController : Controller
             return BadRequest("Error updating todo item");
         }
     }
-
+    
     [HttpDelete("{key:guid}")]
-    public async Task<IActionResult> Remove(Guid guid)
-    {
-        try
-        {
-            _logger.LogInformation("Removing todo item {@Guid}", guid);
-            var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).RemoveAsync(guid);
-
-            return Ok(list);
-        }
-        catch (Exception e)
-        {
-            await _alertService.SendAlertAsync(GetType().Name + ".Remove", e);
-            _logger.LogError(e, "Error removing todo item");
-            return BadRequest("Error removing todo item");
-        }
-    }
-
-    [HttpDelete()]
-    public async Task<IActionResult> Clear()
+    public async Task<IActionResult> Remove(Guid key)
     {
         try
         {
             _logger.LogInformation("Clear all todo item");
-            var list = await _client.GetGrain<ITodoGrain>(Guid.Empty).ClearAsync();
+            await _client.GetGrain<IOwnerGrain>(key).RemoveTodoAsync(key);
 
-            return Ok(list);
+            return Ok(new
+            {
+                Success = true,
+                Message = "Todo item removed",
+            });
+        }
+        catch (Exception e)
+        {
+            await _alertService.SendAlertAsync(GetType().Name + ".Clear", e);
+            _logger.LogError(e, "Error clearing todo item");
+            return BadRequest("Error clearing todo item");
+        }
+    }
+
+    [HttpDelete("all/{ownerKey:guid}")]
+    public async Task<IActionResult> Clear(Guid ownerKey)
+    {
+        try
+        {
+            _logger.LogInformation("Clear all todo item");
+            await _client.GetGrain<IOwnerGrain>(ownerKey).ClearAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Todo items cleared",
+            });
         }
         catch (Exception e)
         {
